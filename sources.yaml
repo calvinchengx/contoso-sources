@@ -59,4 +59,11 @@ vendors:
     kind: cdc
     engine: postgres
     data: _data/contoso-erp
-    topic_prefix: contoso_erp
+    # The seeder makes this vendor EXIST -- the CDC equivalent of materialising
+    # the HTTP vendors' bytes. The platform runs it; the vendor owns it.
+    seed: scripts/seed_erp.py
+    db_user: contoso
+    db_password: contoso-erp-dev
+    db_name: erp
+    # Where the stream lands, from the connector's own topic.prefix and table.
+    topic: contoso.erp.customer
