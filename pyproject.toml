@@ -6,15 +6,9 @@ requires-python = ">=3.12"
 authors = [{name = "Calvin Cheng", email = "calvin@calvinx.com"}]
 dependencies = []
 
-[project.optional-dependencies]
-# The SAME seeded generators the fabric-emulator examples assert against.
-# Pinned, because "the vendor" is only reproducible if the bytes are: same
-# release, same bytes, every run, on every platform that consumes this repo.
-materialise = [
-  "contoso-source-system",
-  "contoso-web-system",
-  "contoso-reference-system",
-]
+# NO dependency list for the generators, deliberately. `scripts/fixtures.py`
+# installs them BY URL at the tag in versions.env, so the version is written
+# once. Naming them here too would be a second place to drift.
 
 [tool.ruff]
 line-length = 100
