@@ -1,0 +1,7 @@
+# 194 MB of vendor exports, MATERIALISED not committed. `make materialise`
+# regenerates them from the pinned generator wheels, which is what makes the
+# bytes identical for every consumer -- a committed copy would drift the moment
+# one platform regenerated and another did not.
+_data/
+__pycache__/
+.venv/

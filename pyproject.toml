@@ -1,0 +1,21 @@
+[project]
+name = "contoso-sources"
+version = "0.1.0"
+description = "The Contoso vendor systems: OpenAPI specs, simulator scripts, and the generators that make their exports reproducible."
+requires-python = ">=3.12"
+authors = [{name = "Calvin Cheng", email = "calvin@calvinx.com"}]
+dependencies = []
+
+[project.optional-dependencies]
+# The SAME seeded generators the fabric-emulator examples assert against.
+# Pinned, because "the vendor" is only reproducible if the bytes are: same
+# release, same bytes, every run, on every platform that consumes this repo.
+materialise = [
+  "contoso-source-system",
+  "contoso-web-system",
+  "contoso-reference-system",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"

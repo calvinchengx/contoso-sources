@@ -1,0 +1,62 @@
+# The vendors this product pulls from, declared for the platform to stand up.
+#
+# THIS IS A DECLARATION, NOT A COMPOSE FILE. The same split as the DAG bundle:
+# the platform owns the mechanism (how a vendor simulator is run), the product
+# owns the content (which vendors exist, what they serve, who they are). A
+# platform reading this file learns nothing about Contoso beyond what it needs
+# to start containers, and a different product declaring different vendors gets
+# the same treatment.
+#
+# In PRODUCTION none of this is instantiated. The vendors are real, and their
+# base URLs and credentials arrive as Airflow Connections of the same names.
+# That is why `conn` is here and a URL is not: the connection name is the
+# cross-target address, exactly as `conn_id="fabric"` is for the target itself.
+version: 1
+
+vendors:
+  # The three operational-and-reference systems, each an OpenAPI service.
+  # ONE SIMULATOR PER VENDOR, never one multiplexing several specs: two vendors
+  # are two credentials that rotate separately and two formats that agree about
+  # nothing, and sharing an instance would let a path typo serve the wrong
+  # vendor's bytes.
+  - name: contoso_pos
+    conn: contoso_pos            # Airflow Connection the DAG asks for by name
+    kind: openapi                # -> the platform runs a mokapi for it
+    spec: contoso-pos/openapi.yaml
+    script: contoso-pos/serve.js
+    data: _data/contoso-pos      # fixture bytes this vendor serves
+    port: 8090
+    # Delimited text and JSON Lines, PAGED. The paging is the vendor's, and the
+    # product's dlt source follows X-Total-Pages rather than assuming a count.
+    formats: [csv, jsonl]
+
+  - name: contoso_web
+    conn: contoso_web
+    kind: openapi
+    spec: contoso-web/openapi.yaml
+    script: contoso-web/serve.js
+    data: _data/contoso-web
+    port: 8091
+    # JSON arrays, and orders arrive NESTED — one order carries its own `lines`.
+    formats: [json]
+
+  - name: contoso_reference
+    conn: contoso_reference
+    kind: openapi
+    spec: contoso-reference/openapi.yaml
+    script: contoso-reference/serve.js
+    data: _data/contoso-reference
+    port: 8092
+    # PARQUET, binary and columnar where the other two ship text. Not paged:
+    # the whole export is about four kilobytes.
+    formats: [parquet]
+
+  # The ERP is not an API at all. Its history has to arrive as a CHANGE STREAM,
+  # because that is what it is in the business — and a snapshot would produce
+  # rows, possibly even the right count, while testing something else entirely.
+  - name: contoso_erp
+    conn: contoso_erp
+    kind: cdc
+    engine: postgres
+    data: _data/contoso-erp
+    topic_prefix: contoso_erp
