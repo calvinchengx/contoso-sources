@@ -10,7 +10,7 @@ it answers it the same way for every consumer.
 
 ## Why its own repository
 
-`contoso-fabric-platform` and `contoso-airflow-data-product` both need these
+`fabric-platform-notebook-pipelines` and `contoso-airflow-data-product` both need these
 vendors, and until now each carried its own copy of the specs and its own
 materialiser. **Two copies of a vendor is where a comparison dies.** The two
 platforms are held to the same bronze row counts; that claim is only meaningful
