@@ -29,6 +29,20 @@ vendors:
     # Delimited text and JSON Lines, PAGED. The paging is the vendor's, and the
     # product's dlt source follows X-Total-Pages rather than assuming a count.
     formats: [csv, jsonl]
+    # A ROUTE THAT ENFORCES THE CREDENTIAL, for the platform to probe. It is
+    # here rather than in a platform because it is a fact about THIS vendor's
+    # API, and because the check it enables is the one that matters: without
+    # its fixture mokapi does not fail, it GENERATES bodies from the OpenAPI
+    # schema and answers every request 200 -- wrong key included. A platform
+    # probing `/` cannot tell that apart from a healthy vendor.
+    health: /api/v1/export/customers
+    # This vendor's memory budget, sized to THIS vendor's export (95 MB, the
+    # largest here). Go does not read the cgroup limit, so a container without
+    # `memory` set lets its heap climb past `mem_limit` and is killed
+    # mid-response -- measured: 7 large requests killed it, 24 ran clean with
+    # it. `memory` sits below `mem_limit` deliberately, so the GC has room.
+    memory: 2GiB
+    mem_limit: 4g
 
   - name: contoso_web
     conn: contoso_web
@@ -39,6 +53,12 @@ vendors:
     port: 8091
     # JSON arrays, and orders arrive NESTED — one order carries its own `lines`.
     formats: [json]
+    health: /api/v2/export/customers
+    # Lower than the POS system's: this vendor's whole export is 36 MB against
+    # that one's 170 MB. Each vendor is sized to itself rather than to one
+    # ceiling that is either too small for the largest or wasteful for the rest.
+    memory: 1GiB
+    mem_limit: 2g
 
   - name: contoso_reference
     conn: contoso_reference
@@ -50,6 +70,11 @@ vendors:
     # PARQUET, binary and columnar where the other two ship text. Not paged:
     # the whole export is about four kilobytes.
     formats: [parquet]
+    health: /reference/v1/fx-rates
+    # Far lower again: reference data is small by nature, and 512m is already
+    # generous for a 4 KB export plus the simulator's own footprint.
+    memory: 256MiB
+    mem_limit: 512m
 
   # The ERP is not an API at all. Its history has to arrive as a CHANGE STREAM,
   # because that is what it is in the business — and a snapshot would produce

@@ -6,6 +6,12 @@ requires-python = ">=3.12"
 authors = [{name = "Calvin Cheng", email = "calvin@calvinx.com"}]
 dependencies = []
 
+[dependency-groups]
+# The vendor invariants (tests/test_sources.py) are static checks on the specs
+# and scripts. Two of them read the fixture generators, so `make fixtures`
+# comes first -- see the Makefile.
+dev = ["pytest>=9.0.3,<10", "pyyaml>=6,<7"]
+
 # NO dependency list for the generators, deliberately. `scripts/fixtures.py`
 # installs them BY URL at the tag in versions.env, so the version is written
 # once. Naming them here too would be a second place to drift.
