@@ -12,9 +12,22 @@ This is the CDC vendor's equivalent of `make materialise` for the HTTP ones: it
 is what makes the vendor real, so it belongs to the sources repo rather than to
 any consumer. A platform runs it; it does not own it.
 
-Idempotent by TRUNCATE, not by append. A second run that silently doubled the
-history would still satisfy every count stated as a minimum, which is the shape
-of green that means nothing.
+Idempotent IN THE TABLE ONLY, by TRUNCATE rather than append -- and that is
+not the same as an idempotent VENDOR, which this docstring used to claim.
+
+The topic is untouched. A second run replays the whole history onto a broker
+that still holds the first, so the stream doubles while the table does not:
+measured three times at exactly 2 x 93,571 events against 28,800 surviving
+rows. Consumers that gate on `inserted - deleted == count(*)` catch it and say
+so; consumers that state their counts as a minimum see the doubled stream as
+success, which is the shape of green that means nothing.
+
+Fixing it here means deleting the topic before replaying, which needs a Kafka
+admin client -- and this repo declares no dependencies, relying on whichever
+platform runs it to install what the seeder imports. That contract is the real
+obstacle and it should be decided rather than worked around: see G21 in
+contoso-data-product's plan. Until then a platform must recreate the broker
+between runs, and every consumer of this stream needs the reconciliation guard.
 """
 from __future__ import annotations
 
