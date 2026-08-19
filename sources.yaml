@@ -43,6 +43,20 @@ vendors:
     # it. `memory` sits below `mem_limit` deliberately, so the GC has room.
     memory: 2GiB
     mem_limit: 4g
+    # A SEATBELT, AND IT BELONGS TO THE VENDOR RATHER THAN TO WHICHEVER
+    # PLATFORM LAST GOT BITTEN. This simulator was OOM-killed twice at its own
+    # `mem_limit` after ~45 minutes and many runs -- the second time with the
+    # host at 3.3 GiB of 15.7 and only 13 containers up, so it was this
+    # container's ceiling and not host pressure. That is growth ACROSS runs,
+    # which `--event-store-default-size=1` is supposed to bound and evidently
+    # does not.
+    #
+    # It is a seatbelt and not a fix: restarting turns a leak into an
+    # intermittent failure that a green pipeline hides. Declared here so every
+    # platform running this vendor gets it -- it lived in one platform's
+    # compose for a day, which meant the other three ran the same vendor
+    # without it and the fact was invisible to them.
+    restart: unless-stopped
 
   - name: contoso_web
     conn: contoso_web
