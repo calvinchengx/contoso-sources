@@ -1,0 +1,67 @@
+# The vendor invariants: static checks on the specs, the schemas and the
+# simulator scripts. No emulator, no platform, no credentials.
+#
+# `make test` and not a bare pytest, because two of these tests read the
+# fixture GENERATORS, which `make fixtures` installs by URL at the tag in
+# versions.env. Run without that step they fail rather than skip, so the
+# ordering is not a convenience: pytest alone is 11 passed and 2 failed.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
+        with:
+          version: "0.12.3"
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: The vendor invariants
+        run: make test
+
+      # A SKIPPED TEST IS NOT A PASSING ONE. The two fixture-reading tests are
+      # the ones most likely to go quiet, since they depend on a download, and
+      # a silent skip here would let a spec drift from what the vendor emits.
+      - name: no test silently skipped
+        run: |
+          set -o pipefail
+          make test 2>&1 | tee /tmp/out
+          grep -qE "^[0-9]+ passed" /tmp/out
+          if grep -qE "[0-9]+ skipped" /tmp/out; then
+            echo "::error::a test skipped, CI must exercise the whole suite"
+            exit 1
+          fi
+
+      # sources.yaml is the contract every platform generates its stack from,
+      # so a malformed one breaks four repos that do not import this file.
+      - name: sources.yaml parses and declares what consumers read
+        run: |
+          uv run --frozen --no-sync --group dev python - <<'PY'
+          import sys, yaml
+          d = yaml.safe_load(open("sources.yaml"))
+          assert d.get("version") == 1, d.get("version")
+          vendors = d.get("vendors") or []
+          assert vendors, "sources.yaml declares no vendors"
+          for v in vendors:
+              for key in ("name", "kind"):
+                  assert v.get(key), f"{v} is missing {key}"
+          print(f"sources.yaml: {len(vendors)} vendors", [v["name"] for v in vendors])
+          PY
+
+      - name: the simulator scripts are valid JavaScript
+        run: |
+          for f in */serve.js; do
+            node --check "$f"
+            echo "ok $f"
+          done
