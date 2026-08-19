@@ -65,3 +65,7 @@ jobs:
             node --check "$f"
             echo "ok $f"
           done
+      # ruff was configured in pyproject.toml and never run, so the config
+      # described an intention rather than a guarantee.
+      - name: ruff
+        run: uvx ruff@0.15.22 check .

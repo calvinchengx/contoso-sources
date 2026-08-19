@@ -175,11 +175,14 @@ def main() -> int:
         with conn.cursor() as cur:
             for e in log:
                 if e["op"] == "I":
-                    cur.execute(INSERT, tuple(e[c] for c in COLUMNS)); ins += 1
+                    cur.execute(INSERT, tuple(e[c] for c in COLUMNS))
+                    ins += 1
                 elif e["op"] == "U":
-                    cur.execute(UPDATE, (*(e[c] for c in SETS), e["erp_customer_id"])); upd += 1
+                    cur.execute(UPDATE, (*(e[c] for c in SETS), e["erp_customer_id"]))
+                    upd += 1
                 else:
-                    cur.execute(DELETE, (e["erp_customer_id"],)); dele += 1
+                    cur.execute(DELETE, (e["erp_customer_id"],))
+                    dele += 1
         conn.commit()
 
     print(f"seed_erp: replayed I={ins} U={upd} D={dele} as real DML", flush=True)
