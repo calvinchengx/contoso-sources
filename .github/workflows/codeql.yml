@@ -1,0 +1,68 @@
+# CodeQL — advanced (in-repo) setup.
+#
+# WHAT THIS REPOSITORY ACTUALLY SHIPS is not obvious from its size. A CI
+# checkout is five Python files and three JavaScript ones -- `.venv/` and
+# `_data/` are gitignored -- but those three are `serve.js`, the mokapi
+# scripts that implement each vendor's auth check and paging. Every platform in
+# the family mounts them read-only and every leaf's bronze layer is whatever
+# they return, so a defect here is a defect in the inputs four pipelines are
+# compared against. That is a small surface with a long reach.
+#
+# See G51 in contoso-data-product/docs/01-plan.md: the emulators were scanned
+# and the products were not, and the only reason two real defects were found in
+# fabric-emulator is that fabric-emulator is scanned.
+#
+# Three languages:
+#   - python                  scripts/ and tests/ -- the fixture generators
+#   - javascript-typescript   the three vendor serve.js scripts
+#   - actions                 these workflows
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '31 7 * * 1' # weekly, Monday 07:31 UTC
+
+# Superseding a PR run is free. Superseding a main run is NOT: a cancelled
+# CodeQL job still uploads its SARIF, flagged `unsuccessful execution` with zero
+# results, and that errored analysis becomes the newest one for its category.
+# A sibling lost 11 of its first 43 main runs that way. So main runs to
+# completion; only PR pushes cancel.
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    # Explicit, because GitHub's 6-hour default makes a wedged run read as
+    # 'still pending' rather than failing.
+    timeout-minutes: 15
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false # one language's failure must not hide the others
+      matrix:
+        language: [python, javascript-typescript, actions]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4.37.7
+        with:
+          languages: ${{ matrix.language }}
+          # `none`: nothing here is compiled. The serve.js scripts are read by
+          # mokapi at run time, not built.
+          build-mode: none
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4.37.7
+        with:
+          category: '/language:${{ matrix.language }}'
